@@ -2636,216 +2636,213 @@ function hook_VillageAttack() {
         });
     //hook挑战攻城怪物副本结束事件, 更新怪物攻城活动各阶段状态
     //village_attacked::CVillageMonster::SendVillageMonsterFightResult
-    Interceptor.attach(ptr(0x086B330A),
-        {
-            onEnter: function (args) {
-                this.village_monster = args[0]; //当前挑战的攻城怪物
-                this.user = args[1]; //当前挑战的角色
-                this.result = args[2].toInt32(); //挑战结果: 1==成功
-            },
-            onLeave: function (retval) {
-                //玩家杀死了攻城怪物
-                if (this.result == 1) {
-                    if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_END) //攻城活动已结束
-                        return;
-                    //当前杀死的攻城怪物id
-                    var village_monster_id = this.village_monster.add(2).readUShort();
-                    //当前阶段杀死每只攻城怪物PT点数奖励: (1, 2, 4, 8, 16)
-                    var bonus_pt = 2 ** villageAttackEventInfo.difficult;
-                    //玩家所在队伍
-                    var party = CUser_GetParty(this.user);
-                    if (party.isNull())
-                        return;
-                    //更新队伍中的所有玩家PT点数
-                    for (var i = 0; i < 4; ++i) {
-                        var user = CParty_get_user(party, i);
-                        if (!user.isNull()) {
-                            //角色当前PT点数(游戏中的原始PT数据记录在village_attack_dungeon表中)
-                            var charac_no = CUserCharacInfo_getCurCharacNo(user).toString();
-                            if (!(charac_no in villageAttackEventInfo.user_pt_info))
-                                villageAttackEventInfo.user_pt_info[charac_no] = [CUser_get_acc_id(user), 0]; //记录角色accid, 方便离线充值
-                            //更新角色当前PT点数
-                            villageAttackEventInfo.user_pt_info[charac_no][1] += bonus_pt;
+    Interceptor.attach(ptr(0x086B330A), {
+        onEnter: function (args) {
+            this.village_monster = args[0]; //当前挑战的攻城怪物
+            this.user = args[1]; //当前挑战的角色
+            this.result = args[2].toInt32(); //挑战结果: 1==成功
+        },
+        onLeave: function (retval) {
+            //玩家杀死了攻城怪物
+            if (this.result == 1) {
+                if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_END) //攻城活动已结束
+                    return;
+                //当前杀死的攻城怪物id
+                var village_monster_id = this.village_monster.add(2).readUShort();
+                //当前阶段杀死每只攻城怪物PT点数奖励: (1, 2, 4, 8, 16)
+                var bonus_pt = 2 ** villageAttackEventInfo.difficult;
+                //玩家所在队伍
+                var party = CUser_GetParty(this.user);
+                if (party.isNull()) {
+                    return;
+                }
+                //更新队伍中的所有玩家PT点数
+                for (var i = 0; i < 4; ++i) {
+                    var user = CParty_get_user(party, i);
+                    if (!user.isNull()) {
+                        //角色当前PT点数(游戏中的原始PT数据记录在village_attack_dungeon表中)
+                        var charac_no = CUserCharacInfo_getCurCharacNo(user).toString();
+                        if (!(charac_no in villageAttackEventInfo.user_pt_info))
+                            villageAttackEventInfo.user_pt_info[charac_no] = [CUser_get_acc_id(user), 0]; //记录角色accid, 方便离线充值
+                        //更新角色当前PT点数
+                        villageAttackEventInfo.user_pt_info[charac_no][1] += bonus_pt;
 
-                            //击杀世界BOSS, 额外获得PT奖励
-                            if ((village_monster_id == TAU_META_COW_MONSTER_ID) && (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3)) {
-                                villageAttackEventInfo.user_pt_info[charac_no][1] += 1000 * (1 + villageAttackEventInfo.difficult);
-                            }
+                        //击杀世界BOSS, 额外获得PT奖励
+                        if ((village_monster_id == TAU_META_COW_MONSTER_ID) && (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3)) {
+                            villageAttackEventInfo.user_pt_info[charac_no][1] += 1000 * (1 + villageAttackEventInfo.difficult);
                         }
                     }
-                    if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P1) //怪物攻城一阶段
-                    {
-                        //更新频道内总PT
-                        villageAttackEventInfo.score += bonus_pt;
+                }
+                // 怪物攻城一阶段
+                if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P1) {
+                    //更新频道内总PT
+                    villageAttackEventInfo.score += bonus_pt;
 
-                        //P1阶段未完成
-                        if (villageAttackEventInfo.score < EVENT_VILLAGEATTACK_TARGET_SCORE[0]) {
-                            //若杀死了牛头统帅, 则攻城难度+1
-                            if (village_monster_id == TAU_CAPTAIN_MONSTER_ID) {
-                                if (villageAttackEventInfo.difficult < 4) {
-                                    villageAttackEventInfo.difficult += 1;
-                                    //怪物攻城副本难度
-                                    set_villageattack_dungeon_difficult(villageAttackEventInfo.difficult);
-                                    //下次刷新出的攻城怪物为: 牛头统帅
-                                    villageAttackEventInfo.next_village_monster_id = TAU_CAPTAIN_MONSTER_ID;
-                                    //公告通知客户端活动进度
-                                    event_villageattack_broadcast_diffcult();
-                                }
+                    //P1阶段未完成
+                    if (villageAttackEventInfo.score < EVENT_VILLAGEATTACK_TARGET_SCORE[0]) {
+                        //若杀死了牛头统帅, 则攻城难度+1
+                        if (village_monster_id == TAU_CAPTAIN_MONSTER_ID) {
+                            if (villageAttackEventInfo.difficult < 4) {
+                                villageAttackEventInfo.difficult += 1;
+                                //怪物攻城副本难度
+                                set_villageattack_dungeon_difficult(villageAttackEventInfo.difficult);
+                                //下次刷新出的攻城怪物为: 牛头统帅
+                                villageAttackEventInfo.next_village_monster_id = TAU_CAPTAIN_MONSTER_ID;
+                                //公告通知客户端活动进度
+                                event_villageattack_broadcast_diffcult();
                             }
-                        } else {
-                            //P1阶段已结束, 进入P2
-                            villageAttackEventInfo.state = VILLAGEATTACK_STATE_P2;
-                            villageAttackEventInfo.score = EVENT_VILLAGEATTACK_TARGET_SCORE[0];
-                            villageAttackEventInfo.p2_last_killed_monster_time = 0;
+                        }
+                    } else {
+                        //P1阶段已结束, 进入P2
+                        villageAttackEventInfo.state = VILLAGEATTACK_STATE_P2;
+                        villageAttackEventInfo.score = EVENT_VILLAGEATTACK_TARGET_SCORE[0];
+                        villageAttackEventInfo.p2_last_killed_monster_time = 0;
+                        villageAttackEventInfo.last_killed_monster_id = 0;
+                        villageAttackEventInfo.p2_kill_combo = 0;
+                        //公告通知客户端活动进度
+                        event_villageattack_broadcast_diffcult();
+                    }
+                    // 怪物攻城二阶段
+                } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P2) {
+                    //计算连杀时间
+                    var cur_time = api_CSystemTime_getCurSec();
+                    var diff_time = cur_time - villageAttackEventInfo.p2_last_killed_monster_time;
+
+                    //1分钟内连续击杀相同攻城怪物
+                    if ((diff_time < 60) && (village_monster_id == villageAttackEventInfo.last_killed_monster_id)) {
+                        //连杀点数+1
+                        villageAttackEventInfo.p2_kill_combo += 1;
+                        if (villageAttackEventInfo.p2_kill_combo >= 3) {
+                            //三连杀增加当前阶段总PT
+                            villageAttackEventInfo.score += 33;
+                            //重新计算连杀
                             villageAttackEventInfo.last_killed_monster_id = 0;
                             villageAttackEventInfo.p2_kill_combo = 0;
-                            //公告通知客户端活动进度
-                            event_villageattack_broadcast_diffcult();
                         }
-                    } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P2) //怪物攻城二阶段
-                    {
-                        //计算连杀时间
-                        var cur_time = api_CSystemTime_getCurSec();
-                        var diff_time = cur_time - villageAttackEventInfo.p2_last_killed_monster_time;
-
-                        //1分钟内连续击杀相同攻城怪物
-                        if ((diff_time < 60) && (village_monster_id == villageAttackEventInfo.last_killed_monster_id)) {
-                            //连杀点数+1
-                            villageAttackEventInfo.p2_kill_combo += 1;
-                            if (villageAttackEventInfo.p2_kill_combo >= 3) {
-                                //三连杀增加当前阶段总PT
-                                villageAttackEventInfo.score += 33;
-                                //重新计算连杀
-                                villageAttackEventInfo.last_killed_monster_id = 0;
-                                villageAttackEventInfo.p2_kill_combo = 0;
-                            }
-                        } else {
-                            //重新计算连杀
-                            villageAttackEventInfo.last_killed_monster_id = village_monster_id;
-                            villageAttackEventInfo.p2_kill_combo = 1;
-                        }
-                        //保存本次击杀时间
-                        villageAttackEventInfo.p2_last_killed_monster_time = cur_time;
+                    } else {
+                        // 重新计算连杀
+                        villageAttackEventInfo.last_killed_monster_id = village_monster_id;
+                        villageAttackEventInfo.p2_kill_combo = 1;
+                    }
+                    //保存本次击杀时间
+                    villageAttackEventInfo.p2_last_killed_monster_time = cur_time;
+                    //P2阶段已结束, 进入P3
+                    if (villageAttackEventInfo.score >= EVENT_VILLAGEATTACK_TARGET_SCORE[1]) {
                         //P2阶段已结束, 进入P3
-                        if (villageAttackEventInfo.score >= EVENT_VILLAGEATTACK_TARGET_SCORE[1]) {
-                            //P2阶段已结束, 进入P3
-                            villageAttackEventInfo.state = VILLAGEATTACK_STATE_P3;
-                            villageAttackEventInfo.score = EVENT_VILLAGEATTACK_TARGET_SCORE[1];
-                            villageAttackEventInfo.next_village_monster_id = TAU_META_COW_MONSTER_ID;
-                            //公告通知客户端活动进度
-                            event_villageattack_broadcast_diffcult();
-                        }
-                    } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3) //怪物攻城三阶段
-                    {
-                        //击杀世界boss
-                        if (village_monster_id == TAU_META_COW_MONSTER_ID) {
-                            //更新世界BOSS血量(PT)
-                            villageAttackEventInfo.score += 25;
-                            //继续刷新世界BOSS
-                            villageAttackEventInfo.next_village_monster_id = TAU_META_COW_MONSTER_ID;
-
-                            //世界广播
-                            api_GameWorld_SendNotiPacketMessage('<怪物攻城活动> 世界BOSS已被[' + api_CUserCharacInfo_getCurCharacName(this.user) + ']击杀!', 14);
-
-                            //P3阶段已结束
-                            if (villageAttackEventInfo.score >= EVENT_VILLAGEATTACK_TARGET_SCORE[2]) {
-                                //怪物攻城活动防守成功, 立即结束活动
-                                villageAttackEventInfo.defend_success = 1;
-                                api_scheduleOnMainThread(on_end_event_villageattack, null);
-                                return;
-                            }
-                        }
+                        villageAttackEventInfo.state = VILLAGEATTACK_STATE_P3;
+                        villageAttackEventInfo.score = EVENT_VILLAGEATTACK_TARGET_SCORE[1];
+                        villageAttackEventInfo.next_village_monster_id = TAU_META_COW_MONSTER_ID;
+                        //公告通知客户端活动进度
+                        event_villageattack_broadcast_diffcult();
                     }
-                    //世界广播当前活动进度
-                    gameworld_update_villageattack_score();
-                    //通知队伍中的所有玩家更新PT点数
-                    for (var i = 0; i < 4; ++i) {
-                        var user = CParty_get_user(party, i);
-                        if (!user.isNull()) {
-                            notify_villageattack_score(user);
-                        }
-                    }
-                    //更新存活GBL主教数量
-                    if (village_monster_id == GBL_POPE_MONSTER_ID) {
-                        if (villageAttackEventInfo.gbl_cnt > 0) {
-                            villageAttackEventInfo.gbl_cnt -= 1;
+                    // 怪物攻城三阶段
+                } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3) {
+                    //击杀世界boss
+                    if (village_monster_id == TAU_META_COW_MONSTER_ID) {
+                        //更新世界BOSS血量(PT)
+                        villageAttackEventInfo.score += 25;
+                        //继续刷新世界BOSS
+                        villageAttackEventInfo.next_village_monster_id = TAU_META_COW_MONSTER_ID;
+
+                        //世界广播
+                        api_GameWorld_SendNotiPacketMessage('<怪物攻城活动> 世界BOSS已被[' + api_CUserCharacInfo_getCurCharacName(this.user) + ']击杀!', 14);
+
+                        //P3阶段已结束
+                        if (villageAttackEventInfo.score >= EVENT_VILLAGEATTACK_TARGET_SCORE[2]) {
+                            //怪物攻城活动防守成功, 立即结束活动
+                            villageAttackEventInfo.defend_success = 1;
+                            api_scheduleOnMainThread(on_end_event_villageattack, null);
+                            return;
                         }
                     }
                 }
+                //世界广播当前活动进度
+                gameworld_update_villageattack_score();
+                //通知队伍中的所有玩家更新PT点数
+                for (var i = 0; i < 4; ++i) {
+                    var user = CParty_get_user(party, i);
+                    if (!user.isNull()) {
+                        notify_villageattack_score(user);
+                    }
+                }
+                //更新存活GBL主教数量
+                if (village_monster_id == GBL_POPE_MONSTER_ID) {
+                    if (villageAttackEventInfo.gbl_cnt > 0) {
+                        villageAttackEventInfo.gbl_cnt -= 1;
+                    }
+                }
             }
-        });
+        }
+    });
     //hook 刷新攻城怪物函数, 控制下一只刷新的攻城怪物id
     //village_attacked::CVillageMonsterArea::GetAttackedMonster
-    Interceptor.attach(ptr(0x086B3AEA),
-        {
-            onEnter: function (args) {
-            },
-            onLeave: function (retval) {
-                //返回值为下一次刷新的攻城怪物
-                if (retval != 0) {
-                    //下一只刷新的攻城怪物
-                    var next_village_monster = ptr(retval);
-                    var next_village_monster_id = next_village_monster.readUShort();
+    Interceptor.attach(ptr(0x086B3AEA), {
+        onEnter: function (args) {
+        },
+        onLeave: function (retval) {
+            //返回值为下一次刷新的攻城怪物
+            if (retval != 0) {
+                //下一只刷新的攻城怪物
+                var next_village_monster = ptr(retval);
+                var next_village_monster_id = next_village_monster.readUShort();
 
-                    //当前刷新的怪物为机制怪物
-                    if ((next_village_monster_id == TAU_META_COW_MONSTER_ID) || (next_village_monster_id == TAU_CAPTAIN_MONSTER_ID)) {
-                        //替换为随机怪物
-                        next_village_monster.writeUShort(get_random_int(1, 17));
-                    }
-                    //如果需要刷新指定怪物
-                    if (villageAttackEventInfo.next_village_monster_id) {
-                        if ((villageAttackEventInfo.state == VILLAGEATTACK_STATE_P1) || (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P2)) {
-                            //P1 P2阶段立即刷新怪物
+                //当前刷新的怪物为机制怪物
+                if ((next_village_monster_id == TAU_META_COW_MONSTER_ID) || (next_village_monster_id == TAU_CAPTAIN_MONSTER_ID)) {
+                    //替换为随机怪物
+                    next_village_monster.writeUShort(get_random_int(1, 17));
+                }
+                //如果需要刷新指定怪物
+                if (villageAttackEventInfo.next_village_monster_id) {
+                    if ((villageAttackEventInfo.state == VILLAGEATTACK_STATE_P1) || (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P2)) {
+                        //P1 P2阶段立即刷新怪物
+                        next_village_monster.writeUShort(villageAttackEventInfo.next_village_monster_id);
+                        villageAttackEventInfo.next_village_monster_id = 0;
+                    } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3) {
+                        //P3阶段 几率刷新出世界BOSS
+                        if (get_random_int(0, 100) < 44) {
                             next_village_monster.writeUShort(villageAttackEventInfo.next_village_monster_id);
                             villageAttackEventInfo.next_village_monster_id = 0;
-                        } else if (villageAttackEventInfo.state == VILLAGEATTACK_STATE_P3) {
-                            //P3阶段 几率刷新出世界BOSS
-                            if (get_random_int(0, 100) < 44) {
-                                next_village_monster.writeUShort(villageAttackEventInfo.next_village_monster_id);
-                                villageAttackEventInfo.next_village_monster_id = 0;
-                                //世界广播
-                                api_GameWorld_SendNotiPacketMessage('<怪物攻城活动> 世界BOSS已刷新, 请勇士们前往挑战!', 14);
-                            }
+                            //世界广播
+                            api_GameWorld_SendNotiPacketMessage('<怪物攻城活动> 世界BOSS已刷新, 请勇士们前往挑战!', 14);
                         }
                     }
-                    //统计存活GBL主教数量
-                    if (next_village_monster.readUShort() == GBL_POPE_MONSTER_ID) {
-                        villageAttackEventInfo.gbl_cnt += 1;
-                    }
+                }
+                //统计存活GBL主教数量
+                if (next_village_monster.readUShort() == GBL_POPE_MONSTER_ID) {
+                    villageAttackEventInfo.gbl_cnt += 1;
                 }
             }
-        });
+        }
+    });
     //当前正在处理挑战的攻城怪物请求
     var state_on_fighting = false;
     //当前正在被挑战的怪物id
     var on_fighting_village_monster_id = 0;
     //hook 挑战攻城怪物函数 控制副本刷怪流程
     //CParty::OnFightVillageMonster
-    Interceptor.attach(ptr(0x085B9596),
-        {
-            onEnter: function (args) {
-                state_on_fighting = true;
-                on_fighting_village_monster_id = 0;
-            },
-            onLeave: function (retval) {
-                on_fighting_village_monster_id = 0;
-                state_on_fighting = false;
-            }
-        });
+    Interceptor.attach(ptr(0x085B9596), {
+        onEnter: function (args) {
+            state_on_fighting = true;
+            on_fighting_village_monster_id = 0;
+        },
+        onLeave: function (retval) {
+            on_fighting_village_monster_id = 0;
+            state_on_fighting = false;
+        }
+    });
     //village_attacked::CVillageMonster::OnFightVillageMonster
-    Interceptor.attach(ptr(0x086B3240),
-        {
-            onEnter: function (args) {
-                if (state_on_fighting) {
-                    var village_monster = args[0];
+    Interceptor.attach(ptr(0x086B3240), {
+        onEnter: function (args) {
+            if (state_on_fighting) {
+                var village_monster = args[0];
 
-                    //记录当前正在挑战的攻城怪物id
-                    on_fighting_village_monster_id = village_monster.add(2).readU16();
-                }
-            },
-            onLeave: function (retval) {
+                //记录当前正在挑战的攻城怪物id
+                on_fighting_village_monster_id = village_monster.add(2).readU16();
             }
-        });
+        },
+        onLeave: function (retval) {
+        }
+    });
     //hook 副本刷怪函数 控制副本内怪物的数量和属性
     //MapInfo::Add_Mob
     var read_f = new NativeFunction(ptr(0x08151612), 'int', ['pointer', 'pointer'], {"abi": "sysv"});
@@ -2949,35 +2946,34 @@ function hook_VillageAttack() {
     }, 'int', ['pointer', 'pointer']));
     //每次通关额外获取当前等级升级所需经验的0%-0.1%
     //village_attacked::CVillageMonsterMgr::OnKillVillageMonster
-    Interceptor.attach(ptr(0x086B4866),
-        {
-            onEnter: function (args) {
-                this.user = args[1];
-                this.result = args[2].toInt32();
-            },
-            onLeave: function (retval) {
-                if (retval == 0) {
-                    //挑战成功
-                    if (this.result) {
-                        //玩家所在队伍
-                        var party = CUser_GetParty(this.user);
-                        //怪物攻城挑战成功, 给队伍中所有成员发送额外通关发经验
-                        for (var i = 0; i < 4; ++i) {
-                            var user = CParty_get_user(party, i);
-                            if (!user.isNull()) {
-                                //随机经验奖励
-                                var cur_level = CUserCharacInfo_get_charac_level(user);
-                                var reward_exp = Math.floor(CUserCharacInfo_get_level_up_exp(user, cur_level) * get_random_int(0, 1000) / 1000000);
-                                //发经验
-                                api_CUser_gain_exp_sp(user, reward_exp);
-                                //通知玩家获取额外奖励
-                                api_CUser_SendNotiPacketMessage(user, '怪物攻城挑战成功, 获取额外经验奖励' + reward_exp, 0);
-                            }
+    Interceptor.attach(ptr(0x086B4866), {
+        onEnter: function (args) {
+            this.user = args[1];
+            this.result = args[2].toInt32();
+        },
+        onLeave: function (retval) {
+            if (retval == 0) {
+                //挑战成功
+                if (this.result) {
+                    //玩家所在队伍
+                    var party = CUser_GetParty(this.user);
+                    //怪物攻城挑战成功, 给队伍中所有成员发送额外通关发经验
+                    for (var i = 0; i < 4; ++i) {
+                        var user = CParty_get_user(party, i);
+                        if (!user.isNull()) {
+                            //随机经验奖励
+                            var cur_level = CUserCharacInfo_get_charac_level(user);
+                            var reward_exp = Math.floor(CUserCharacInfo_get_level_up_exp(user, cur_level) * get_random_int(0, 1000) / 1000000);
+                            //发经验
+                            api_CUser_gain_exp_sp(user, reward_exp);
+                            //通知玩家获取额外奖励
+                            api_CUser_SendNotiPacketMessage(user, '怪物攻城挑战成功, 获取额外经验奖励' + reward_exp, 0);
                         }
                     }
                 }
             }
-        });
+        }
+    });
 }
 
 //结束怪物攻城活动(立即销毁攻城怪物, 不开启逆袭之谷, 不发送活动奖励)
@@ -3276,20 +3272,19 @@ function fix_TOD(skip_user_apc) {
     if (skip_user_apc) {
         //跳过10/20/.../90层
         //TOD_UserState::getTodayEnterLayer
-        Interceptor.attach(ptr(0x0864383E),
-            {
-                onEnter: function (args) {
-                    //绝望之塔当前层数
-                    var today_enter_layer = args[1].add(0x14).readShort();
+        Interceptor.attach(ptr(0x0864383E), {
+            onEnter: function (args) {
+                //绝望之塔当前层数
+                var today_enter_layer = args[1].add(0x14).readShort();
 
-                    if (((today_enter_layer % 10) == 9) && (today_enter_layer > 0) && (today_enter_layer < 100) && (today_enter_layer != 99)) {
-                        //当前层数为10的倍数时  直接进入下一层
-                        args[1].add(0x14).writeShort(today_enter_layer + 1);
-                    }
-                },
-                onLeave: function (retval) {
+                if (((today_enter_layer % 10) == 9) && (today_enter_layer > 0) && (today_enter_layer < 100) && (today_enter_layer != 99)) {
+                    //当前层数为10的倍数时  直接进入下一层
+                    args[1].add(0x14).writeShort(today_enter_layer + 1);
                 }
-            });
+            },
+            onLeave: function (retval) {
+            }
+        });
     }
 
     //修复金币异常
@@ -3328,109 +3323,108 @@ function api_set_JewelSocketData(jewelSocketData, slot, emblem_item_id) {
 //修复时装镶嵌
 function fix_use_emblem_old() {
     //Dispatcher_UseJewel::dispatch_sig
-    Interceptor.attach(ptr(0x8217BD6),
-        {
-            onEnter: function (args) {
-                try {
-                    var user = args[1];
-                    var packet_buf = args[2];
-                    //校验角色状态是否允许镶嵌
-                    var state = CUser_get_state(user);
-                    if (state != 3) {
-                        return;
-                    }
-                    //解析packet_buf
-                    //时装所在的背包槽
-                    var avartar_inven_slot = api_PacketBuf_get_short(packet_buf);
-                    //时装item_id
-                    var avartar_item_id = api_PacketBuf_get_int(packet_buf);
-                    //本次镶嵌徽章数量
-                    var emblem_cnt = api_PacketBuf_get_byte(packet_buf);
-                    //获取时装道具
-                    var inven = CUserCharacInfo_getCurCharacInvenW(user);
-                    var avartar = CInventory_GetInvenRef(inven, INVENTORY_TYPE_AVARTAR, avartar_inven_slot);
-                    //校验时装 数据是否合法
-                    if (Inven_Item_isEmpty(avartar) || (Inven_Item_getKey(avartar) != avartar_item_id) || CUser_CheckItemLock(user, 2, avartar_inven_slot)) {
-                        return;
-                    }
-                    //获取时装插槽数据
-                    var avartar_add_info = Inven_Item_get_add_info(avartar);
-                    var inven_avartar_mgr = CInventory_GetAvatarItemMgrR(inven);
-                    var jewel_socket_data = WongWork_CAvatarItemMgr_getJewelSocketData(inven_avartar_mgr, avartar_add_info);
-
-                    if (jewel_socket_data.isNull()) {
-                        return;
-                    }
-                    //最多只支持3个插槽
-                    if (emblem_cnt <= 3) {
-                        var emblems = {};
-                        for (var i = 0; i < emblem_cnt; i++) {
-                            //徽章所在的背包槽
-                            var emblem_inven_slot = api_PacketBuf_get_short(packet_buf);
-                            //徽章item_id
-                            var emblem_item_id = api_PacketBuf_get_int(packet_buf);
-                            //该徽章镶嵌的时装插槽id
-                            var avartar_socket_slot = api_PacketBuf_get_byte(packet_buf);
-                            //log('emblem_inven_slot=' + emblem_inven_slot + ', emblem_item_id=' + emblem_item_id + ', avartar_socket_slot=' + avartar_socket_slot);
-                            //获取徽章道具
-                            var emblem = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, emblem_inven_slot);
-                            //校验徽章及插槽数据是否合法
-                            if (Inven_Item_isEmpty(emblem) || (Inven_Item_getKey(emblem) != emblem_item_id) || (avartar_socket_slot >= 3)) {
-                                return;
-                            }
-                            //校验徽章是否满足时装插槽颜色要求
-                            //获取徽章pvf数据
-                            var citem = CDataManager_find_item(G_CDataManager(), emblem_item_id);
-                            if (citem.isNull()) {
-                                return;
-                            }
-                            //校验徽章类型
-                            if (!CItem_is_stackable(citem) || (CStackableItem_GetItemType(citem) != 20)) {
-                                return;
-                            }
-                            //获取徽章支持的插槽
-                            var emblem_socket_type = CStackableItem_getJewelTargetSocket(citem);
-                            //获取要镶嵌的时装插槽类型
-                            var avartar_socket_type = jewel_socket_data.add(avartar_socket_slot * 6).readShort()
-                            if (!(emblem_socket_type & avartar_socket_type)) {
-                                //插槽类型不匹配
-                                //log('socket type not match!');
-                                return;
-                            }
-                            emblems[avartar_socket_slot] = [emblem_inven_slot, emblem_item_id];
-                        }
-                        //开始镶嵌
-                        for (var avartar_socket_slot in emblems) {
-                            //删除徽章
-                            var emblem_inven_slot = emblems[avartar_socket_slot][0];
-                            CInventory_delete_item(inven, 1, emblem_inven_slot, 1, 8, 1);
-                            //设置时装插槽数据
-                            var emblem_item_id = emblems[avartar_socket_slot][1];
-                            api_set_JewelSocketData(jewel_socket_data, avartar_socket_slot, emblem_item_id);
-                            //log('徽章item_id=' + emblem_item_id + '已成功镶嵌进avartar_socket_slot=' + avartar_socket_slot + '的槽内!');
-                        }
-                        //时装插槽数据存档
-                        DB_UpdateAvatarJewelSlot_makeRequest(CUserCharacInfo_getCurCharacNo(user), api_get_avartar_ui_id(avartar), jewel_socket_data);
-                        //通知客户端时装数据已更新
-                        CUser_SendUpdateEqu_JewelSocket(user, 1, avartar_inven_slot);
-                        //回包给客户端
-                        var packet_guard = api_PacketGuard_PacketGuard();
-                        InterfacePacketBuf_put_header(packet_guard, 1, 204);
-                        InterfacePacketBuf_put_int(packet_guard, 1);
-                        InterfacePacketBuf_finalize(packet_guard, 1);
-                        CUser_Send(user, packet_guard);
-                        Destroy_PacketGuard_PacketGuard(packet_guard);
-                        //log('镶嵌请求已处理完成!');
-                    }
-                } catch (error) {
-                    console.log('fix_use_emblem_old throw Exception:' + error);
+    Interceptor.attach(ptr(0x8217BD6), {
+        onEnter: function (args) {
+            try {
+                var user = args[1];
+                var packet_buf = args[2];
+                //校验角色状态是否允许镶嵌
+                var state = CUser_get_state(user);
+                if (state != 3) {
+                    return;
                 }
-            },
-            onLeave: function (retval) {
-                //返回值改为0  不再踢线
-                retval.replace(0);
+                //解析packet_buf
+                //时装所在的背包槽
+                var avartar_inven_slot = api_PacketBuf_get_short(packet_buf);
+                //时装item_id
+                var avartar_item_id = api_PacketBuf_get_int(packet_buf);
+                //本次镶嵌徽章数量
+                var emblem_cnt = api_PacketBuf_get_byte(packet_buf);
+                //获取时装道具
+                var inven = CUserCharacInfo_getCurCharacInvenW(user);
+                var avartar = CInventory_GetInvenRef(inven, INVENTORY_TYPE_AVARTAR, avartar_inven_slot);
+                //校验时装 数据是否合法
+                if (Inven_Item_isEmpty(avartar) || (Inven_Item_getKey(avartar) != avartar_item_id) || CUser_CheckItemLock(user, 2, avartar_inven_slot)) {
+                    return;
+                }
+                //获取时装插槽数据
+                var avartar_add_info = Inven_Item_get_add_info(avartar);
+                var inven_avartar_mgr = CInventory_GetAvatarItemMgrR(inven);
+                var jewel_socket_data = WongWork_CAvatarItemMgr_getJewelSocketData(inven_avartar_mgr, avartar_add_info);
+
+                if (jewel_socket_data.isNull()) {
+                    return;
+                }
+                //最多只支持3个插槽
+                if (emblem_cnt <= 3) {
+                    var emblems = {};
+                    for (var i = 0; i < emblem_cnt; i++) {
+                        //徽章所在的背包槽
+                        var emblem_inven_slot = api_PacketBuf_get_short(packet_buf);
+                        //徽章item_id
+                        var emblem_item_id = api_PacketBuf_get_int(packet_buf);
+                        //该徽章镶嵌的时装插槽id
+                        var avartar_socket_slot = api_PacketBuf_get_byte(packet_buf);
+                        //log('emblem_inven_slot=' + emblem_inven_slot + ', emblem_item_id=' + emblem_item_id + ', avartar_socket_slot=' + avartar_socket_slot);
+                        //获取徽章道具
+                        var emblem = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, emblem_inven_slot);
+                        //校验徽章及插槽数据是否合法
+                        if (Inven_Item_isEmpty(emblem) || (Inven_Item_getKey(emblem) != emblem_item_id) || (avartar_socket_slot >= 3)) {
+                            return;
+                        }
+                        //校验徽章是否满足时装插槽颜色要求
+                        //获取徽章pvf数据
+                        var citem = CDataManager_find_item(G_CDataManager(), emblem_item_id);
+                        if (citem.isNull()) {
+                            return;
+                        }
+                        //校验徽章类型
+                        if (!CItem_is_stackable(citem) || (CStackableItem_GetItemType(citem) != 20)) {
+                            return;
+                        }
+                        //获取徽章支持的插槽
+                        var emblem_socket_type = CStackableItem_getJewelTargetSocket(citem);
+                        //获取要镶嵌的时装插槽类型
+                        var avartar_socket_type = jewel_socket_data.add(avartar_socket_slot * 6).readShort()
+                        if (!(emblem_socket_type & avartar_socket_type)) {
+                            //插槽类型不匹配
+                            //log('socket type not match!');
+                            return;
+                        }
+                        emblems[avartar_socket_slot] = [emblem_inven_slot, emblem_item_id];
+                    }
+                    //开始镶嵌
+                    for (var avartar_socket_slot in emblems) {
+                        //删除徽章
+                        var emblem_inven_slot = emblems[avartar_socket_slot][0];
+                        CInventory_delete_item(inven, 1, emblem_inven_slot, 1, 8, 1);
+                        //设置时装插槽数据
+                        var emblem_item_id = emblems[avartar_socket_slot][1];
+                        api_set_JewelSocketData(jewel_socket_data, avartar_socket_slot, emblem_item_id);
+                        //log('徽章item_id=' + emblem_item_id + '已成功镶嵌进avartar_socket_slot=' + avartar_socket_slot + '的槽内!');
+                    }
+                    //时装插槽数据存档
+                    DB_UpdateAvatarJewelSlot_makeRequest(CUserCharacInfo_getCurCharacNo(user), api_get_avartar_ui_id(avartar), jewel_socket_data);
+                    //通知客户端时装数据已更新
+                    CUser_SendUpdateEqu_JewelSocket(user, 1, avartar_inven_slot);
+                    //回包给客户端
+                    var packet_guard = api_PacketGuard_PacketGuard();
+                    InterfacePacketBuf_put_header(packet_guard, 1, 204);
+                    InterfacePacketBuf_put_int(packet_guard, 1);
+                    InterfacePacketBuf_finalize(packet_guard, 1);
+                    CUser_Send(user, packet_guard);
+                    Destroy_PacketGuard_PacketGuard(packet_guard);
+                    //log('镶嵌请求已处理完成!');
+                }
+            } catch (error) {
+                console.log('fix_use_emblem_old throw Exception:' + error);
             }
-        });
+        },
+        onLeave: function (retval) {
+            //返回值改为0  不再踢线
+            retval.replace(0);
+        }
+    });
 }
 
 //捕获玩家游戏事件
@@ -3533,7 +3527,7 @@ function api_get_jewel_socket_data(mysql, id) {//获取徽章数据,存在返回
     return v;
 }
 
-function api_exitjeweldata(id) {//0代表不存在,存在返回1
+function api_exist_jewel_data(id) {//0代表不存在,存在返回1
     api_MySQL_exec(mysql_frida, 'SELECT index_flag FROM data where equ_id = ' + id + ';')
     var exit = 0;
     if (MySQL_get_n_rows(mysql_frida) == 1) {
@@ -3669,7 +3663,7 @@ function fix_use_emblem() {
 
             }
             var equ_id = inven_item.add(25).readU32()
-            if (api_exitjeweldata(equ_id) == 1) {//判断是否存在数据槽位
+            if (api_exist_jewel_data(equ_id) == 1) {//判断是否存在数据槽位
                 CUser_SendCmdErrorPacket(CUser, 209, 19);
                 return 0;
             }
@@ -3694,7 +3688,6 @@ function fix_use_emblem() {
     Interceptor.attach(ptr(0x8217BD6), {
 
         onEnter: function (args) {
-
             try {
                 var user = args[1];
                 var packet_buf = args[2];
@@ -3706,7 +3699,6 @@ function fix_use_emblem() {
                 if (state != 3) {
                     return;
                 }
-
 
                 //解析packet_buf
 
@@ -4264,102 +4256,98 @@ function boost_random_option_equ(user) {
 //魔法封印属性转换时可以继承
 function change_random_option_inherit() {
     //random_option::CRandomOptionItemHandle::change_option
-    Interceptor.attach(ptr(0x85F3340),
-        {
-            onEnter: function (args) {
-                //保存原始魔法封印属性
-                this.random_option = args[7];
-                //本次变换的属性编号
-                this.change_random_option_index = args[6].toInt32();
-                //记录原始属性
-                this.random_optio_type = this.random_option.add(3 * this.change_random_option_index).readU8();
-                this.random_optio_value_1 = this.random_option.add(3 * this.change_random_option_index + 1).readU8();
-                this.random_optio_value_2 = this.random_option.add(3 * this.change_random_option_index + 2).readU8();
-            },
-            onLeave: function (retval) {
-                //魔法封印转换成功
-                if (retval == 1) {
-                    //获取未被附魔的魔法封印槽
-                    var index = -1;
-                    if (this.random_option.add(0).readU8() == 0)
-                        index = 0;
-                    else if (this.random_option.add(3).readU8() == 0)
-                        index = 1;
-                    else if (this.random_option.add(6).readU8() == 0)
-                        index = 2;
+    Interceptor.attach(ptr(0x85F3340), {
+        onEnter: function (args) {
+            //保存原始魔法封印属性
+            this.random_option = args[7];
+            //本次变换的属性编号
+            this.change_random_option_index = args[6].toInt32();
+            //记录原始属性
+            this.random_optio_type = this.random_option.add(3 * this.change_random_option_index).readU8();
+            this.random_optio_value_1 = this.random_option.add(3 * this.change_random_option_index + 1).readU8();
+            this.random_optio_value_2 = this.random_option.add(3 * this.change_random_option_index + 2).readU8();
+        },
+        onLeave: function (retval) {
+            //魔法封印转换成功
+            if (retval == 1) {
+                //获取未被附魔的魔法封印槽
+                var index = -1;
+                if (this.random_option.add(0).readU8() == 0)
+                    index = 0;
+                else if (this.random_option.add(3).readU8() == 0)
+                    index = 1;
+                else if (this.random_option.add(6).readU8() == 0)
+                    index = 2;
 
-                    //当魔法封印词条不足3个时, 若变换出等级极低的属性, 可直接附魔到装备空的魔法封印槽内
-                    if (index >= 0) {
-                        if ((this.random_option.add(11).readU8() <= 5) && (this.random_option.add(12).readU8() <= 5)) {
-                            //魔法封印附魔
-                            this.random_option.add(3 * index).writeU8(this.random_option.add(10).readU8());
-                            this.random_option.add(3 * index + 1).writeU8(this.random_option.add(11).readU8());
-                            this.random_option.add(3 * index + 2).writeU8(this.random_option.add(12).readU8());
+                //当魔法封印词条不足3个时, 若变换出等级极低的属性, 可直接附魔到装备空的魔法封印槽内
+                if (index >= 0) {
+                    if ((this.random_option.add(11).readU8() <= 5) && (this.random_option.add(12).readU8() <= 5)) {
+                        //魔法封印附魔
+                        this.random_option.add(3 * index).writeU8(this.random_option.add(10).readU8());
+                        this.random_option.add(3 * index + 1).writeU8(this.random_option.add(11).readU8());
+                        this.random_option.add(3 * index + 2).writeU8(this.random_option.add(12).readU8());
 
-                            //清空本次变换的属性(可以继续选择其他词条变换)
-                            this.random_option.add(10).writeInt(0);
+                        //清空本次变换的属性(可以继续选择其他词条变换)
+                        this.random_option.add(10).writeInt(0);
 
-                            return;
-                        }
+                        return;
                     }
-                    //用变换后的词条覆盖原始魔法封印词条
-                    this.random_option.add(3 * this.change_random_option_index).writeU8(this.random_option.add(10).readU8());
-                    //若变换后的属性低于原来的值 则继承原有属性值 否则使用变换后的属性
-                    if (this.random_option.add(11).readU8() > this.random_optio_value_1)
-                        this.random_option.add(3 * this.change_random_option_index + 1).writeU8(this.random_option.add(11).readU8());
-                    if (this.random_option.add(12).readU8() > this.random_optio_value_2)
-                        this.random_option.add(3 * this.change_random_option_index + 2).writeU8(this.random_option.add(12).readU8());
-                    //清空本次变换的属性(可以继续选择其他词条变换)
-                    this.random_option.add(10).writeInt(0);
                 }
+                //用变换后的词条覆盖原始魔法封印词条
+                this.random_option.add(3 * this.change_random_option_index).writeU8(this.random_option.add(10).readU8());
+                //若变换后的属性低于原来的值 则继承原有属性值 否则使用变换后的属性
+                if (this.random_option.add(11).readU8() > this.random_optio_value_1)
+                    this.random_option.add(3 * this.change_random_option_index + 1).writeU8(this.random_option.add(11).readU8());
+                if (this.random_option.add(12).readU8() > this.random_optio_value_2)
+                    this.random_option.add(3 * this.change_random_option_index + 2).writeU8(this.random_option.add(12).readU8());
+                //清空本次变换的属性(可以继续选择其他词条变换)
+                this.random_option.add(10).writeInt(0);
             }
-        });
+        }
+    });
 }
 
 //魔法封印自动解封
-// function auto_unseal_random_option_equipment(user) {
-
 function auto_unseal_random_option_equipment() {
     //CInventory::insertItemIntoInventory
-    Interceptor.attach(ptr(0x8502D86),
-        {
-            onEnter: function (args) {
-                this.user = args[0].readPointer();
-            },
-            onLeave: function (retval) {
-                //物品栏新增物品的位置
-                var slot = retval.toInt32();
-                if (slot > 0) {
-                    //获取道具的角色
-                    var user = this.user;
-                    //角色背包
-                    var inven = CUserCharacInfo_getCurCharacInvenW(user);
-                    //背包中新增的道具
-                    var inven_item = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, slot);
-                    //过滤道具类型
-                    if (!Inven_Item_isEquipableItemType(inven_item))
-                        return;
-                    //装备id
-                    var item_id = Inven_Item_getKey(inven_item);
-                    //pvf中获取装备数据
-                    var citem = CDataManager_find_item(G_CDataManager(), item_id);
-                    //检查装备是否为魔法封印类型
-                    if (!CEquipItem_IsRandomOption(citem))
-                        return;
-                    //是否已被解除魔法封印（魔法封印前10个字节是否为0）
-                    var random_option = inven_item.add(37);
-                    if (random_option.readU32() || random_option.add(4).readU32() || random_option.add(8).readShort()) {
-                        return;
-                    }
-                    //尝试解除魔法封印
-                    var ret = random_option_CRandomOptionItemHandle_give_option(ptr(0x941F820).readPointer(), item_id, CItem_get_rarity(citem), CItem_getUsableLevel(citem), CItem_getItemGroupName(citem), CEquipItem_GetRandomOptionGrade(citem), inven_item.add(37));
-                    if (ret) {
-                        //通知客户端有装备更新
-                        CUser_SendUpdateEqu_JewelSocket(user, 0, slot);
-                    }
+    Interceptor.attach(ptr(0x8502D86), {
+        onEnter: function (args) {
+            this.user = args[0].readPointer();
+        },
+        onLeave: function (retval) {
+            //物品栏新增物品的位置
+            var slot = retval.toInt32();
+            if (slot > 0) {
+                //获取道具的角色
+                var user = this.user;
+                //角色背包
+                var inven = CUserCharacInfo_getCurCharacInvenW(user);
+                //背包中新增的道具
+                var inven_item = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, slot);
+                //过滤道具类型
+                if (!Inven_Item_isEquipableItemType(inven_item))
+                    return;
+                //装备id
+                var item_id = Inven_Item_getKey(inven_item);
+                //pvf中获取装备数据
+                var citem = CDataManager_find_item(G_CDataManager(), item_id);
+                //检查装备是否为魔法封印类型
+                if (!CEquipItem_IsRandomOption(citem))
+                    return;
+                //是否已被解除魔法封印（魔法封印前10个字节是否为0）
+                var random_option = inven_item.add(37);
+                if (random_option.readU32() || random_option.add(4).readU32() || random_option.add(8).readShort()) {
+                    return;
+                }
+                //尝试解除魔法封印
+                var ret = random_option_CRandomOptionItemHandle_give_option(ptr(0x941F820).readPointer(), item_id, CItem_get_rarity(citem), CItem_getUsableLevel(citem), CItem_getItemGroupName(citem), CEquipItem_GetRandomOptionGrade(citem), inven_item.add(37));
+                if (ret) {
+                    //通知客户端有装备更新
+                    CUser_SendUpdateEqu_JewelSocket(user, 0, slot);
                 }
             }
-        });
+        }
+    });
 }
 
 //幸运点上下限
@@ -4407,30 +4395,28 @@ function use_ftcoin_change_luck_point(user) {
 }
 
 //使用角色幸运值加成装备爆率
-function enable_drop_use_luck_piont() {
+function enable_drop_use_luck_point() {
     //由于roll点爆装函数拿不到user, 在杀怪和翻牌函数入口保存当前正在处理的user
     var cur_luck_user = null;
     //DisPatcher_DieMob::dispatch_sig
-    Interceptor.attach(ptr(0x81EB0C4),
-        {
-            onEnter: function (args) {
-                cur_luck_user = args[1];
-            },
-            onLeave: function (retval) {
-                cur_luck_user = null;
-            }
-        });
+    Interceptor.attach(ptr(0x81EB0C4), {
+        onEnter: function (args) {
+            cur_luck_user = args[1];
+        },
+        onLeave: function (retval) {
+            cur_luck_user = null;
+        }
+    });
 
     //CParty::SetPlayResult
-    Interceptor.attach(ptr(0x85B2412),
-        {
-            onEnter: function (args) {
-                cur_luck_user = args[1];
-            },
-            onLeave: function (retval) {
-                cur_luck_user = null;
-            }
-        });
+    Interceptor.attach(ptr(0x85B2412), {
+        onEnter: function (args) {
+            cur_luck_user = args[1];
+        },
+        onLeave: function (retval) {
+            cur_luck_user = null;
+        }
+    });
 
     //修改决定出货品质(rarity)的函数 使出货率享受角色幸运值加成
     //CLuckPoint::GetItemRarity
@@ -4489,25 +4475,24 @@ function api_GetPartyMemberNumber(Party) {
 /** 史诗药剂 */
 function epicPotion() {
     var user = null;
-    Interceptor.attach(ptr(0x81EB0C4),
-        {
-            onEnter: function (args) {
-                user = args[1];
-            },
-            onLeave: function (retval) {
-                user = null;
-            }
-        });
+    Interceptor.attach(ptr(0x81EB0C4), {
+        onEnter: function (args) {
+            user = args[1];
+        },
+        onLeave: function (retval) {
+            user = null;
+        }
+    });
 
-    Interceptor.attach(ptr(0x85B2412),
-        {
-            onEnter: function (args) {
-                user = args[1];
-            },
-            onLeave: function (retval) {
-                user = null;
-            }
-        });
+    Interceptor.attach(ptr(0x85B2412), {
+        onEnter: function (args) {
+            user = args[1];
+        },
+        onLeave: function (retval) {
+            user = null;
+        }
+    });
+
     var CLuckPoint_getItemRarity = new NativeFunction(ptr(0x8550BE4), 'int', ['pointer', 'pointer', 'int', 'int'], {"abi": "sysv"});
     Interceptor.replace(ptr(0x8550BE4), new NativeCallback(function (a1, a2, roll, a4) {
         if (user == null) {
@@ -4558,15 +4543,14 @@ function InterSelectMobileAuthReward() {
 //解除每日创建角色数量限制
 function disable_check_create_character_limit() {
     //DB_CreateCharac::CheckLimitCreateNewCharac
-    Interceptor.attach(ptr(0x8401922),
-        {
-            onEnter: function (args) {
-            },
-            onLeave: function (retval) {
-                //强制返回允许创建
-                retval.replace(1);
-            }
-        });
+    Interceptor.attach(ptr(0x8401922), {
+        onEnter: function (args) {
+        },
+        onLeave: function (retval) {
+            //强制返回允许创建
+            retval.replace(1);
+        }
+    });
 }
 
 //+13以上强化券自动刷新物品栏
@@ -4629,7 +4613,6 @@ function CUser_SendUpdateEqu_JewelSocket(CUser, itemSpace, Slot) {
 function check_move_comboSkillSlot_force_true() {
     Interceptor.attach(ptr(0x8608C98), {
         onEnter: function (args) {
-
         },
         onLeave: function (retval) {
             //强制返回1
@@ -4796,25 +4779,30 @@ function _ModEquipableItemAttr() {
             var a = ptr(this.pack.add(20).readPointer());
             this.itemSold = a.add(13).add(6).readShort();
             this.equSold = a.add(13).add(0).readShort();
-            console.log('[enter _ModEquipableItemAttr::] itemSold ' + this.itemSold + ' equSold ' + this.equSold);
+            // console.log('[enter _ModEquipableItemAttr::] itemSold ' + this.itemSold + ' equSold ' + this.equSold);
         },
         onLeave: function (retval) {
-            console.log('[leave _ModEquipableItemAttr::] ');
             //获取角色背包
+            // var user = this.user;
             var inven = CUserCharacInfo_getCurCharacInvenW(this.user);
             if (inven != null) {
-                console.log('[leave _ModEquipableItemAttr::] inven is not empty');
+                // console.log('[leave _ModEquipableItemAttr::] inven is not empty');
                 // 获取物品栏的道具
                 var ItemObj = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, this.itemSold);
+                if (Inven_Item_isEmpty(ItemObj)) {
+                    return;
+                }
+
                 // 获取物品栏的装备
                 var equObj = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, this.equSold);
-
-                // console.log('[leave _ModEquipableItemAttr::] item.id ' + Inven_Item_getKey(ItemObj));
+                var itemId = Inven_Item_getKey(ItemObj);
+                // console.log('[leave _ModEquipableItemAttr::] item.id ' + itemId);
                 // 897：解放的装备品级调整箱  15：装备品级调整箱
-                if (Inven_Item_getKey(ItemObj) == 897) {
+                if (itemId == 897 || itemId == 15) {
                     // 设置装备平级最上级
                     Inven_Item_set_add_info(equObj, 999999998)
-                    CUser_SendUpdateItemList(this.user, 1, 0, this.equSold);
+                    // CUser_SendUpdateItemList(this.user, 1, 0, this.equSold); // 刷新带有镶嵌数据的装备会有问题，替换为下面函数
+                    CUser_SendUpdateEqu_JewelSocket(this.user, 0, this.equSold);
                 }
             }
         }
