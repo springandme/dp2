@@ -4935,7 +4935,7 @@ function _ModEquipableItemAttr() {
                 // 获取物品栏的装备
                 var equObj = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, this.equSold);
                 var itemId = Inven_Item_getKey(ItemObj);
-                // console.log('[leave _ModEquipableItemAttr::] item.id ' + itemId);
+                log('[leave _ModEquipableItemAttr::] item.id ' + itemId);
                 // 897：解放的装备品级调整箱  15：装备品级调整箱
                 if (itemId == 897 || itemId == 15) {
                     // 设置装备平级最上级
@@ -5008,9 +5008,9 @@ function start() {
 // ============================================= dp集成frida =============================================
 
 /*
-frida 官网地址: https:// frida.re/
+frida 官网地址: https://frida.re/
 
-frida提供的js api接口文档地址: https:// frida.re/docs/javascript-api/
+frida提供的js api接口文档地址: https://frida.re/docs/javascript-api/
 
 关于dp2支持frida的说明, 请参阅: /dp2/lua/df/frida.lua
 */
