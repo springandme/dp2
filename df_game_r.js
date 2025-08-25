@@ -25,10 +25,7 @@ var EventClassify_CEventScriptMng_process_level_up_reward = new NativeFunction(p
 var GuildParameterScript_getGuildLevelUpParam = new NativeFunction(ptr(0x08979648), 'pointer', ['pointer', 'int'], {"abi": "sysv"});
 var GuildParameterScript_getGuildExpBook = new NativeFunction(ptr(0x08979672), 'int', ['pointer', 'int'], {"abi": "sysv"});
 
-// 道具是否为消耗品
-var CItem_GetIncreaseStatusIntData = new NativeFunction(ptr(0x08694658), 'int', ['pointer', 'int', 'pointer'], {"abi": "sysv"});
-var CItem_GetIncreaseStatusType = new NativeFunction(ptr(0x086946b6), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_GetUsablePvPRank = new NativeFunction(ptr(0x086946c4), 'int', ['pointer'], {"abi": "sysv"});
+
 
 
 var CMonitorServerProxy_SendCharLevelGrowType = new NativeFunction(ptr(0x08470c04), 'int', ['pointer', 'int', 'int', 'int', 'int'], {"abi": "sysv"});
@@ -189,8 +186,12 @@ var CEquipItem_IsRandomOption = new NativeFunction(ptr(0x8514E5E), 'int', ['poin
 var random_option_CRandomOptionItemHandle_give_option = new NativeFunction(ptr(0x85F2CC6), 'int', ['pointer', 'int', 'int', 'int', 'int', 'int', 'pointer'], {"abi": "sysv"});
 // 获取装备品级
 var CItem_get_rarity = new NativeFunction(ptr(0x080F12D6), 'int', ['pointer'], {"abi": "sysv"});
+
 // 获取装备可穿戴等级
-var CItem_getUsableLevel = new NativeFunction(ptr(0x80F12EE), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_GetUsableLevel = new NativeFunction(ptr(0x80f12ee), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_GetRarity = new NativeFunction(ptr(0x80f12d6), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_GetItemGroupName = new NativeFunction(ptr(0x80f1312), 'int', ['pointer'], {"abi": "sysv"});
+
 // 获取装备[item group name]
 var CItem_getItemGroupName = new NativeFunction(ptr(0x80F1312), 'int', ['pointer'], {"abi": "sysv"});
 // 获取装备魔法封印等级
@@ -213,9 +214,8 @@ var CItem_GetGrade = new NativeFunction(ptr(0x8110c54), 'int', ['pointer'], {"ab
 var CItem_GetPrice = new NativeFunction(ptr(0x822c84a), 'int', ['pointer'], {"abi": "sysv"});
 var CItem_GetGenRate = new NativeFunction(ptr(0x822c84a), 'int', ['pointer'], {"abi": "sysv"});
 var CItem_GetNeedLevel = new NativeFunction(ptr(0x8545fda), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_GetUsableLevel = new NativeFunction(ptr(0x80f12ee), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_GetRarity = new NativeFunction(ptr(0x80f12d6), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_GetItemGroupName = new NativeFunction(ptr(0x80f1312), 'int', ['pointer'], {"abi": "sysv"});
+
+
 var CItem_GetUpSkillType = new NativeFunction(ptr(0x8545fcc), 'int', ['pointer'], {"abi": "sysv"});
 var CItem_GetGetExpertJobCompoundMaterialVariation = new NativeFunction(ptr(0x850d292), 'int', ['pointer'], {"abi": "sysv"});
 var CItem_GetExpertJobCompoundRateVariation = new NativeFunction(ptr(0x850d2aa), 'int', ['pointer'], {"abi": "sysv"});
@@ -243,10 +243,8 @@ var CDataManager_get_event_script_mng = new NativeFunction(ptr(0x08110b62), 'poi
 var CDataManager_GetExpertJobScript = new NativeFunction(ptr(0x0822b5f2), 'pointer', ['pointer', 'int'], {"abi": "sysv"});
 var CDataManager_get_dimensionInout = new NativeFunction(ptr(0x0822b612), 'int', ['pointer', 'int'], {"abi": "sysv"});
 
-// 获取消耗品类型
-var CStackableItem_GetItemType = new NativeFunction(ptr(0x8514A84), 'int', ['pointer'], {"abi": "sysv"});
-// 获取徽章支持的镶嵌槽类型
-var CStackableItem_getJewelTargetSocket = new NativeFunction(ptr(0x0822CA28), 'int', ['pointer'], {"abi": "sysv"});
+
+
 // 背包道具
 var Inven_Item_Inven_Item = new NativeFunction(ptr(0x80CB854), 'pointer', ['pointer'], {"abi": "sysv"});
 // 获取角色点券余额
@@ -262,6 +260,21 @@ var CUserCharacInfo_GetLoginTick = new NativeFunction(ptr(0x822F692), 'int', ['p
 var CUser_CheckItemLock = new NativeFunction(ptr(0x8646942), 'int', ['pointer', 'int', 'int'], {"abi": "sysv"});
 // 道具是否为消耗品
 var CItem_is_stackable = new NativeFunction(ptr(0x80F12FA), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_isPackagable = new NativeFunction(ptr(0x0828B5B4), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_getUsablePeriod = new NativeFunction(ptr(0x08110C60), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_getExpirationDate = new NativeFunction(ptr(0x080F1306), 'int', ['pointer'], {"abi": "sysv"});
+
+// 道具是否为消耗品
+var CItem_GetIncreaseStatusIntData = new NativeFunction(ptr(0x08694658), 'int', ['pointer', 'int', 'pointer'], {"abi": "sysv"});
+var CItem_GetIncreaseStatusType = new NativeFunction(ptr(0x086946b6), 'int', ['pointer'], {"abi": "sysv"});
+var CItem_GetUsablePvPRank = new NativeFunction(ptr(0x086946c4), 'int', ['pointer'], {"abi": "sysv"});
+
+// 获取消耗品类型
+var CStackableItem_GetItemType = new NativeFunction(ptr(0x8514A84), 'int', ['pointer'], {"abi": "sysv"});
+
+// 获取徽章支持的镶嵌槽类型
+var CStackableItem_getJewelTargetSocket = new NativeFunction(ptr(0x0822CA28), 'int', ['pointer'], {"abi": "sysv"});
+
 // 任务是否已完成
 var WongWork_CQuestClear_isClearedQuest = new NativeFunction(ptr(0x808BAE0), 'int', ['pointer', 'int'], {"abi": "sysv"});
 var UserQuest_finish_quest = new NativeFunction(ptr(0x86AC854), 'int', ['pointer', 'int'], {"abi": "sysv"});
@@ -283,7 +296,11 @@ var CUser_setGmQuestFlag = new NativeFunction(ptr(0x822FC8E), 'int', ['pointer',
 var Inven_Item_reset = new NativeFunction(ptr(0x080CB7D8), 'int', ['pointer'], {"abi": "sysv"});
 // 减少金币
 var CInventory_use_money = new NativeFunction(ptr(0x84FF54C), 'int', ['pointer', 'int', 'int', 'int'], {"abi": "sysv"});
+// 增加金币
 var CInventory_gain_money = new NativeFunction(ptr(0x084ff29C), 'pointer', ['pointer', 'int', 'int', 'int', 'int'], {"abi": "sysv"});
+// 获取角色当前持有金币数量
+var CInventory_get_money = new NativeFunction(ptr(0x81347D6), 'int', ['pointer'], {"abi": "sysv"});
+
 var CAccountCargo_AddMoney = new NativeFunction(ptr(0x0828A742), 'pointer', ['pointer', 'uint'], {"abi": "sysv"});
 var CAccountCargo_SendNotifyMoney = new NativeFunction(ptr(0x0828A7DC), 'pointer', ['int', 'int'], {"abi": "sysv"});
 var CUser_CheckMoney = new NativeFunction(ptr(0x0866AF1C), 'int', ['pointer', 'int'], {"abi": "sysv"});
@@ -459,6 +476,7 @@ var PacketBuf_get_byte = new NativeFunction(ptr(0x858CF22), 'int', ['pointer', '
 var PacketBuf_get_short = new NativeFunction(ptr(0x858CFC0), 'int', ['pointer', 'pointer'], {"abi": "sysv"});
 var PacketBuf_get_int = new NativeFunction(ptr(0x858D27E), 'int', ['pointer', 'pointer'], {"abi": "sysv"});
 var PacketBuf_get_binary = new NativeFunction(ptr(0x858D3B2), 'int', ['pointer', 'pointer', 'int'], {"abi": "sysv"});
+
 // 服务器组包
 var PacketGuard_PacketGuard = new NativeFunction(ptr(0x858DD4C), 'int', ['pointer'], {"abi": "sysv"});
 var InterfacePacketBuf_put_header = new NativeFunction(ptr(0x80CB8FC), 'int', ['pointer', 'int', 'int'], {"abi": "sysv"});
@@ -523,15 +541,14 @@ var CAccountCargo_SetStable = new NativeFunction(ptr(0x0844DC16), 'pointer', ['p
 var Destroy_CStreamGuard_CStreamGuard = new NativeFunction(ptr(0x0861C8D2), 'void', ['pointer'], {"abi": "sysv"});
 var AccountCargoScript_GetCurrUpgradeInfo = new NativeFunction(ptr(0x088C80BA), 'int', ['pointer', 'int'], {"abi": "sysv"});
 var CStackableItem_getStackableLimit = new NativeFunction(ptr(0x0822C9FC), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_isPackagable = new NativeFunction(ptr(0x0828B5B4), 'int', ['pointer'], {"abi": "sysv"});
+
 var stAmplifyOption_t_GetLock = new NativeFunction(ptr(0x0828B5A8), 'int', ['pointer'], {"abi": "sysv"});
 var CUser_GetCharacExpandDataR = new NativeFunction(ptr(0x0828B5DE), 'int', ['int', 'int'], {"abi": "sysv"});
 var item_lock_CItemLock_CheckItemLock = new NativeFunction(ptr(0x08541A96), 'int', ['int', 'int'], {"abi": "sysv"});
 var CItem_GetAttachType = new NativeFunction(ptr(0x80F12E2), 'int', ['pointer'], {"abi": "sysv"});
 var UpgradeSeparateInfo_IsTradeRestriction = new NativeFunction(ptr(0x08110B0A), 'int', ['pointer'], {"abi": "sysv"});
 var CUser_isGMUser = new NativeFunction(ptr(0x0814589C), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_getUsablePeriod = new NativeFunction(ptr(0x08110C60), 'int', ['pointer'], {"abi": "sysv"});
-var CItem_getExpirationDate = new NativeFunction(ptr(0x080F1306), 'int', ['pointer'], {"abi": "sysv"});
+
 // 线程安全锁
 var Guard_Mutex_Guard = new NativeFunction(ptr(0x810544C), 'int', ['pointer', 'pointer'], {"abi": "sysv"});
 var Destroy_Guard_Mutex_Guard = new NativeFunction(ptr(0x8105468), 'int', ['pointer'], {"abi": "sysv"});
@@ -572,8 +589,7 @@ const CUser_GetCharacExpandData = new NativeFunction(ptr(0x080DD584), 'pointer',
 const TOD_Layer_TOD_Layer = new NativeFunction(ptr(0x085FE7B4), 'pointer', ['pointer', 'int'], {"abi": "sysv"});
 // 设置绝望之塔层数
 const TOD_UserState_setEnterLayer = new NativeFunction(ptr(0x086438FC), 'pointer', ['pointer', 'pointer'], {"abi": "sysv"});
-// 获取角色当前持有金币数量
-var CInventory_get_money = new NativeFunction(ptr(0x81347D6), 'int', ['pointer'], {"abi": "sysv"});
+
 // 通知客户端更新角色身上装备
 const CUser_SendNotiPacket = new NativeFunction(ptr(0x0867BA5C), 'int', ['pointer', 'int', 'int', 'int'], {"abi": "sysv"});
 // 开启怪物攻城
@@ -584,10 +600,14 @@ const GlobalData_s_villageMonsterMgr = ptr(0x941F77C);
 const nullptr = Memory.alloc(4);
 var Inven_Item = new NativeFunction(ptr(0x080CB854), 'void', ['pointer'], {"abi": "sysv"});
 var GetItem_index = new NativeFunction(ptr(0x08110C48), 'int', ['pointer'], {"abi": "sysv"});
+// 获取当前角色id
 var GetCurCharacNo = new NativeFunction(ptr(0x80CBC4E), 'int', ['pointer'], {"abi": "sysv"});
 var GetServerGroup = new NativeFunction(ptr(0x080CBC90), 'int', ['pointer'], {"abi": "sysv"});
 var GetCurVAttackCount = new NativeFunction(ptr(0x084EC216), 'int', ['pointer'], {"abi": "sysv"});
 var ReqDBSendNewSystemMail = new NativeFunction(ptr(0x085555E8), 'int', ['pointer', 'pointer', 'int', 'int', 'pointer', 'int', 'int', 'int', 'char', 'char'], {"abi": "sysv"});
+
+// 读取副本id
+var getDungeonIdxAfterClear = new NativeFunction(ptr(0x0867cb90),  'int', ['pointer'], {"abi":"sysv"});
 
 // 测试系统API
 var strlen = new NativeFunction(Module.getExportByName(null, 'strlen'), 'int', ['pointer'], {"abi": "sysv"});
@@ -677,7 +697,7 @@ var villageAttackEventInfo = {
 }
 
 // 文件记录日志
-var frida_log_dir_path = './frida_log/'
+var frida_log_dir_path = '/dp2/frida_log/'
 var f_log = null;
 var log_day = null;
 
@@ -4362,7 +4382,7 @@ function auto_unseal_random_option_equipment() {
                     return;
                 }
                 // 尝试解除魔法封印
-                var ret = random_option_CRandomOptionItemHandle_give_option(ptr(0x941F820).readPointer(), item_id, CItem_get_rarity(citem), CItem_getUsableLevel(citem), CItem_getItemGroupName(citem), CEquipItem_GetRandomOptionGrade(citem), inven_item.add(37));
+                var ret = random_option_CRandomOptionItemHandle_give_option(ptr(0x941F820).readPointer(), item_id, CItem_get_rarity(citem), CItem_GetUsableLevel(citem), CItem_getItemGroupName(citem), CEquipItem_GetRandomOptionGrade(citem), inven_item.add(37));
                 if (ret) {
                     // 通知客户端有装备更新
                     CUser_SendUpdateEqu_JewelSocket(user, 0, slot);
