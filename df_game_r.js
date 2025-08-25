@@ -4890,34 +4890,34 @@ function hook_random_option_for_ss() {
 
 // 一键入库
 function moveToCargo(user) {
-    const cargo = CUserCharacInfo_getCurCharacCargoW(user);
-    const inven = CUserCharacInfo_getCurCharacInvenW(user);
+    var cargo = CUserCharacInfo_getCurCharacCargoW(user);
+    var inven = CUserCharacInfo_getCurCharacInvenW(user);
     // 物品槽范围: 57-152 (材料、消耗品栏)
-    const INVENTORY_SLOT_START = 57;
-    const INVENTORY_SLOT_END = 152;
+    var INVENTORY_SLOT_START = 57;
+    var INVENTORY_SLOT_END = 152;
     for (var slot = INVENTORY_SLOT_START; slot <= INVENTORY_SLOT_END; slot++) {
-        const inventoryItem = CInventory_getInvenRef(inven, INVENTORY_TYPE_ITEM, slot);
-        const itemId = Inven_Item_getKey(inventoryItem); // 获取物品ID
+        var inventoryItem = CInventory_getInvenRef(inven, INVENTORY_TYPE_ITEM, slot);
+        var itemId = Inven_Item_getKey(inventoryItem); // 获取物品ID
         // 如果物品ID无效，跳过当前循环
         if (itemId <= 0) continue;
-        const itemExistsInCargo = CCargo_check_item_exist(cargo, itemId);
+        var itemExistsInCargo = CCargo_check_item_exist(cargo, itemId);
         // 如果仓库中没有该物品，跳过
         if (itemExistsInCargo == -1) continue;
         // 获取仓库中对应物品的指针和数量
-        const cargoItemPointer = cargo.add(4).readPointer().add(61 * itemExistsInCargo);
-        const cargoItemId = cargo.add(4).readPointer().add(61 * itemExistsInCargo + 2).readU32();
-        const cargoItemCount = Inven_Item_get_add_info(cargoItemPointer);
-        const inventoryItemCount = Inven_Item_get_add_info(inventoryItem);
+        var cargoItemPointer = cargo.add(4).readPointer().add(61 * itemExistsInCargo);
+        var cargoItemId = cargo.add(4).readPointer().add(61 * itemExistsInCargo + 2).readU32();
+        var cargoItemCount = Inven_Item_get_add_info(cargoItemPointer);
+        var inventoryItemCount = Inven_Item_get_add_info(inventoryItem);
         // 检查物品堆叠是否超过上限
-        const canStack = checkStackableLimit(cargoItemId, cargoItemCount + inventoryItemCount);
+        var canStack = checkStackableLimit(cargoItemId, cargoItemCount + inventoryItemCount);
         // 如果超过堆叠上限，提示并跳过
         if (canStack == 0) {
-            const itemName = api_CItem_GetItemName(cargoItemId);
-            api_CUser_SendNotiPacketMessage(user, `${itemName} 超过堆叠上限，无法放入！`, 1);
+            var itemName = api_CItem_GetItemName(cargoItemId);
+            api_CUser_SendNotiPacketMessage(user, itemName + ' 超过堆叠上限，无法放入！', 1);
             continue;
         }
         // 将物品存入仓库
-        const insertResult = CCargo_insert_item(cargo, inventoryItem);
+        var insertResult = CCargo_insert_item(cargo, inventoryItem);
         // 如果存入成功，更新背包和仓库
         if (insertResult >= 0) {
             Inven_Item_reset(inventoryItem); // 重置背包物品
