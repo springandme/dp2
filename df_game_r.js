@@ -4696,11 +4696,11 @@ function UserUseItemEvent(user, item_id, accid) {
             break;
         case 10303917:
             // 辅助装备任务完成券
-            // clear_doing_questEx(user, 674);
+            clear_doing_questEx(user, 10017);
             break;
         case 10303918:
             // 魔法石任务完成券
-            // clear_doing_questEx(user, 675);
+            clear_doing_questEx(user, 10016);
             break;
         default:
             return;
@@ -4957,7 +4957,7 @@ function _ModEquipableItemAttr() {
                 var itemId = Inven_Item_getKey(ItemObj);
                 log('[leave _ModEquipableItemAttr::] item.id ' + itemId);
                 // 897：解放的装备品级调整箱  15：装备品级调整箱
-                if (itemId == 897 || itemId == 15) {
+                if (itemId == 897) {
                     // 设置装备平级最上级
                     Inven_Item_set_add_info(equObj, 999999998)
                     // CUser_SendUpdateItemList(this.user, 1, 0, this.equSold); // 刷新带有镶嵌数据的装备会有问题，替换为下面函数
