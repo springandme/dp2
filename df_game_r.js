@@ -26,8 +26,6 @@ var GuildParameterScript_getGuildLevelUpParam = new NativeFunction(ptr(0x0897964
 var GuildParameterScript_getGuildExpBook = new NativeFunction(ptr(0x08979672), 'int', ['pointer', 'int'], {"abi": "sysv"});
 
 
-
-
 var CMonitorServerProxy_SendCharLevelGrowType = new NativeFunction(ptr(0x08470c04), 'int', ['pointer', 'int', 'int', 'int', 'int'], {"abi": "sysv"});
 var CMonitorServerProxy_SendPacket = new NativeFunction(ptr(0x08470df4), 'int', ['pointer', 'pointer', 'int'], {"abi": "sysv"});
 var CServerProxyMgr_CMonitorServerProxy_GetServerProxy = new NativeFunction(ptr(0x0811208a), 'pointer', ['pointer', 'int'], {"abi": "sysv"});
@@ -242,7 +240,6 @@ var CDataManager_GetSpAtLevelUp = new NativeFunction(ptr(0x08360cb8), 'int', ['p
 var CDataManager_get_event_script_mng = new NativeFunction(ptr(0x08110b62), 'pointer', ['pointer'], {"abi": "sysv"});
 var CDataManager_GetExpertJobScript = new NativeFunction(ptr(0x0822b5f2), 'pointer', ['pointer', 'int'], {"abi": "sysv"});
 var CDataManager_get_dimensionInout = new NativeFunction(ptr(0x0822b612), 'int', ['pointer', 'int'], {"abi": "sysv"});
-
 
 
 // 背包道具
@@ -607,7 +604,7 @@ var GetCurVAttackCount = new NativeFunction(ptr(0x084EC216), 'int', ['pointer'],
 var ReqDBSendNewSystemMail = new NativeFunction(ptr(0x085555E8), 'int', ['pointer', 'pointer', 'int', 'int', 'pointer', 'int', 'int', 'int', 'char', 'char'], {"abi": "sysv"});
 
 // 读取副本id
-var getDungeonIdxAfterClear = new NativeFunction(ptr(0x0867cb90),  'int', ['pointer'], {"abi":"sysv"});
+var getDungeonIdxAfterClear = new NativeFunction(ptr(0x0867cb90), 'int', ['pointer'], {"abi": "sysv"});
 
 // 测试系统API
 var strlen = new NativeFunction(Module.getExportByName(null, 'strlen'), 'int', ['pointer'], {"abi": "sysv"});
@@ -4694,11 +4691,11 @@ function UserUseItemEvent(user, item_id, accid) {
         case 1047:
             // use_ftcoin_change_luck_point(user);
             break;
-        case 10303917:
+        case 2020301530:
             // 辅助装备任务完成券
             clear_doing_questEx(user, 10017);
             break;
-        case 10303918:
+        case 2020301531:
             // 魔法石任务完成券
             clear_doing_questEx(user, 10016);
             break;
@@ -4764,7 +4761,7 @@ function setHellPartyDifficulty() {
 }
 
 // 调整箱调整假紫，默认S属性
-var MyDispatcher_ModItemAttr_SendResult = new NativeFunction(ptr(0X08201938), 'void', ['pointer', 'pointer', 'pointer', 'pointer', 'pointer'], {"abi": "sysv"}); // 装备品级调整箱调整假紫
+var Dispatcher_ModItemAttr_SendResult = new NativeFunction(ptr(0X08201938), 'void', ['pointer', 'pointer', 'pointer', 'pointer', 'pointer'], {"abi": "sysv"}); // 装备品级调整箱调整假紫
 
 // 调整箱调整假紫，默认S属性
 function dispatcherModItemAttr() {
@@ -4787,7 +4784,7 @@ function dispatcherModItemAttr() {
                 inven_equ.add(ran_no + 2).writeU8(50); // 修改假紫词条数值2=50
                 inven_equ.add(48).writeU8(50);  // 这两个是变换的词条 若没变换过 可不写
                 inven_equ.add(49).writeU8(50);  // 这两个是变换的词条 若没变换过 可不写
-                MyDispatcher_ModItemAttr_SendResult(a1, user, ptr(1), ptr(stk_slot), ptr(equ_slot));
+                Dispatcher_ModItemAttr_SendResult(a1, user, ptr(1), ptr(stk_slot), ptr(equ_slot));
                 return;
             }
 
@@ -4801,7 +4798,7 @@ function dispatcherModItemAttr() {
                 inven_equ.add(45).writeU8(50);
                 inven_equ.add(48).writeU8(50);  // 这两个是变换的词条 若没变换过 可不写
                 inven_equ.add(49).writeU8(50);  // 这两个是变换的词条 若没变换过 可不写
-                MyDispatcher_ModItemAttr_SendResult(a1, user, ptr(1), ptr(stk_slot), ptr(equ_slot));
+                Dispatcher_ModItemAttr_SendResult(a1, user, ptr(1), ptr(stk_slot), ptr(equ_slot));
                 return;
             }
             // 执行原逻辑 todo 有问题
@@ -4952,6 +4949,10 @@ function _ModEquipableItemAttr() {
                     return;
                 }
 
+                if (CUser_CheckInTrade(this.user) != 0) {
+                    return
+                }
+
                 // 获取物品栏的装备
                 var equObj = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, this.equSold);
                 var itemId = Inven_Item_getKey(ItemObj);
@@ -4967,6 +4968,55 @@ function _ModEquipableItemAttr() {
         }
     });
 }
+
+
+// ------------------------------------ 多彩装扮/调整箱------------------------------------
+// // 频道道具附加信息
+var Hook_Dispatcher_Dispatcher_ModItemAttr_dispatch_sig = new NativeFunction(ptr(0x8200B08), 'int', ['pointer', 'pointer', 'pointer'], {"abi": "sysv"});
+
+function ModEquipableItemAttr_new() {
+    Interceptor.replace(ptr(0x8200B08), new NativeCallback(function (Dispatcher_ModItemAttr, CUser, PacketBuf) {
+        var OrPacketBuf = Apl_PacketBuf_get_buf(PacketBuf);
+        var item_slot = OrPacketBuf.add(6).readU16(); // 使用的物品槽位
+        var inven = CUserCharacInfo_getCurCharacInvenW(CUser);
+        var inven_item = CInventory_GetInvenRef(inven, INVENTORY_TYPE_ITEM, item_slot);
+        var item_id = Inven_Item_getKey(inven_item);
+        console.log("item_id: " + item_id);
+        var equ_slot = OrPacketBuf.add(6).readU16(); // 设置的装备槽位
+        var inven_equ = CInventory_GetInvenRef(inven, 1, equ_slot);
+        if (CUser_get_state(CUser) != 3 || !CUserCharacInfo_getCurCharacNo(CUser)) {
+            return 0;
+        }
+        if (CUser_CheckInTrade(CUser) != 0) {
+            return 0;
+        }
+        if (inven_equ.isNull()) {
+            CUser_SendCmdErrorPacket(CUser, 84, 4); // 发送装备数据消息
+        }
+        if (CUser_CheckItemLock(CUser, 1, equ_slot) != 0) {
+            CUser_SendCmdErrorPacket(CUser, 84, 213); // 装备已锁定
+        }
+        if (item_id == 897) { // 解放调整箱
+            if (CInventory_delete_item(inven, 1, item_slot, 1, 3, 1) != 1) {
+                CUser_SendCmdErrorPacket(CUser, 84, 22); // 发送材料不足通知
+                CUser_SendUpdateItemList(CUser, 1, 0, item_slot); // 刷新背包道具列表
+                return 0;
+            }
+            // 设置装备品级上限
+            Inven_Item_set_add_info(inven_equ, 999999998)
+            Dispatcher_ModItemAttr_SendResult(Dispatcher_ModItemAttr, CUser, 2, item_slot, equ_slot)
+            CUser_SendUpdateItemList(CUser, 1, 0, item_slot); // 刷新背包道具列表
+        } else {
+            // 执行原逻辑
+            Hook_Dispatcher_Dispatcher_ModItemAttr_dispatch_sig(Dispatcher_ModItemAttr, CUser, PacketBuf)
+        }
+        return 0;
+    }, 'int', ['pointer', 'pointer', 'pointer']));
+}
+
+
+// ------------------------------------ 多彩装扮/调整箱------------------------------------
+
 
 // 改变购物所需材料
 function change_new_material_required_for_shopping() {
@@ -4993,7 +5043,8 @@ function start() {
     hook_history_log(); // hook日志
     rarityExtension();
 
-    _ModEquipableItemAttr() // 黄金品级调整箱效果
+    ModEquipableItemAttr_new() //  多彩装扮/黄金调整箱效果
+    // _ModEquipableItemAttr() // 黄金品级调整箱效果
     dispatcherModItemAttr() // 调整箱调整假紫，默认S属性
     setHellPartyDifficulty() // 深渊次次困难
     // hook_user_inout_game_world() // 怪物攻城
