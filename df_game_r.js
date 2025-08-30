@@ -4694,11 +4694,11 @@ function UserUseItemEvent(user, item_id, accid) {
         case 1047:
             // use_ftcoin_change_luck_point(user);
             break;
-        case 10303917:
+        case 2020301530:
             // 辅助装备任务完成券
             clear_doing_questEx(user, 10017);
             break;
-        case 10303918:
+        case 2020301531:
             // 魔法石任务完成券
             clear_doing_questEx(user, 10016);
             break;
